@@ -225,41 +225,45 @@ class Bet(object):
         return "A" if self.outcomes[0][key] > self.outcomes[1][key] else "B"
 
     def skip(self) -> bool:
-        if self.settings.filter_condition is not None:
-            # key == by , condition == where
-            key = self.settings.filter_condition.by
-            condition = self.settings.filter_condition.where
-            value = self.settings.filter_condition.value
+        if self.settings.filter_condition is None:
+            return False, 0  # Default don't skip the bet
+        # key == by , condition == where
+        key = self.settings.filter_condition.by
+        condition = self.settings.filter_condition.where
+        value = self.settings.filter_condition.value
 
-            fixed_key = (
-                key
-                if key not in [OutcomeKeys.DECISION_USERS, OutcomeKeys.DECISION_POINTS]
-                else key.replace("decision", "total")
+        fixed_key = (
+            key
+            if key not in [OutcomeKeys.DECISION_USERS, OutcomeKeys.DECISION_POINTS]
+            else key.replace("decision", "total")
+        )
+        if key in [OutcomeKeys.TOTAL_USERS, OutcomeKeys.TOTAL_POINTS]:
+            compared_value = (
+                self.outcomes[0][fixed_key] + self.outcomes[1][fixed_key]
             )
-            if key in [OutcomeKeys.TOTAL_USERS, OutcomeKeys.TOTAL_POINTS]:
-                compared_value = (
-                    self.outcomes[0][fixed_key] + self.outcomes[1][fixed_key]
-                )
-            else:
-                outcome_index = char_decision_as_index(self.decision["choice"])
-                compared_value = self.outcomes[outcome_index][fixed_key]
+        else:
+            outcome_index = char_decision_as_index(self.decision["choice"])
+            compared_value = self.outcomes[outcome_index][fixed_key]
 
             # Check if condition is satisfied
-            if condition == Condition.GT:
-                if compared_value > value:
-                    return False, compared_value
-            elif condition == Condition.LT:
-                if compared_value < value:
-                    return False, compared_value
-            elif condition == Condition.GTE:
-                if compared_value >= value:
-                    return False, compared_value
-            elif condition == Condition.LTE:
-                if compared_value <= value:
-                    return False, compared_value
-            return True, compared_value  # Else skip the bet
-        else:
-            return False, 0  # Default don't skip the bet
+        if (
+            condition == Condition.GT
+            and compared_value > value
+            or condition != Condition.GT
+            and condition == Condition.LT
+            and compared_value < value
+            or condition != Condition.GT
+            and condition != Condition.LT
+            and condition == Condition.GTE
+            and compared_value >= value
+            or condition != Condition.GT
+            and condition != Condition.LT
+            and condition != Condition.GTE
+            and condition == Condition.LTE
+            and compared_value <= value
+        ):
+            return False, compared_value
+        return True, compared_value  # Else skip the bet
 
     def calculate(self, balance: int) -> dict:
         self.decision = {"choice": None, "amount": 0, "id": None}

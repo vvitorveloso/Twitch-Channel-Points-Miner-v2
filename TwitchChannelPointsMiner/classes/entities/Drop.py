@@ -26,7 +26,7 @@ class Drop(object):
         self.id = dict["id"]
         self.name = dict["name"]
         self.benefit = ", ".join(
-            list(set([bf["benefit"]["name"] for bf in dict["benefitEdges"]]))
+            list({bf["benefit"]["name"] for bf in dict["benefitEdges"]})
         )
         self.minutes_required = dict["requiredMinutesWatched"]
 
@@ -97,7 +97,4 @@ class Drop(object):
         return f"|{('█' * progress)}{(' ' * remaining)}|\t{self.percentage_progress}% [{self.current_minutes_watched}/{self.minutes_required}]"
 
     def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.id == other.id
-        else:
-            return False
+        return self.id == other.id if isinstance(other, self.__class__) else False

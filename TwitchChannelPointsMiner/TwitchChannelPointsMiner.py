@@ -183,7 +183,7 @@ class TwitchChannelPointsMiner:
                     streamers_name.append(username)
                     streamers_dict[username] = streamer
 
-            if followers is True:
+            if followers:
                 followers_array = self.twitch.get_followers(order=followers_order)
                 logger.info(
                     f"Load {len(followers_array)} followers from your profile!",
@@ -204,7 +204,7 @@ class TwitchChannelPointsMiner:
                     try:
                         streamer = (
                             streamers_dict[username]
-                            if isinstance(streamers_dict[username], Streamer) is True
+                            if isinstance(streamers_dict[username], Streamer)
                             else Streamer(username)
                         )
                         streamer.channel_id = self.twitch.get_channel_id(username)
@@ -411,8 +411,8 @@ class TwitchChannelPointsMiner:
                     f"{repr(self.streamers[streamer_index])}, Total Points Gained (after farming - before farming): {_millify(gained)}",
                     extra={"emoji": ":robot:"},
                 )
-                if self.streamers[streamer_index].history != {}:
-                    logger.info(
-                        f"{self.streamers[streamer_index].print_history()}",
-                        extra={"emoji": ":moneybag:"},
-                    )
+            if self.streamers[streamer_index].history != {}:
+                logger.info(
+                    f"{self.streamers[streamer_index].print_history()}",
+                    extra={"emoji": ":moneybag:"},
+                )

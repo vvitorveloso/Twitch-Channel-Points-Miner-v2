@@ -99,12 +99,12 @@ class Twitch(object):
             main_page_request = requests.get(streamer.streamer_url, headers=headers)
             response = main_page_request.text
             regex_settings = "(https://static.twitchcdn.net/config/settings.*?js)"
-            settings_url = re.search(regex_settings, response).group(1)
+            settings_url = re.search(regex_settings, response)[1]
 
             settings_request = requests.get(settings_url, headers=headers)
             response = settings_request.text
             regex_spade = '"spade_url":"(.*?)"'
-            streamer.stream.spade_url = re.search(regex_spade, response).group(1)
+            streamer.stream.spade_url = re.search(regex_spade, response)[1]
         except requests.exceptions.RequestException as e:
             logger.error(f"Something went wrong during extraction of 'spade_url': {e}")
 
@@ -168,7 +168,7 @@ class Twitch(object):
         has_next = True
         last_cursor = ""
         follows = []
-        while has_next is True:
+        while has_next:
             json_data["variables"]["cursor"] = last_cursor
             json_response = self.post_gql_request(json_data)
             try:
@@ -208,7 +208,7 @@ class Twitch(object):
     # Create chunk of sleep of speed-up the break loop after CTRL+C
     def __chuncked_sleep(self, seconds, chunk_size=3):
         sleep_time = max(seconds, 0) / chunk_size
-        for i in range(0, chunk_size):
+        for _ in range(0, chunk_size):
             time.sleep(sleep_time)
             if self.running is False:
                 break
@@ -258,7 +258,7 @@ class Twitch(object):
                 ]
 
                 for index in streamers_index:
-                    if (streamers[index].stream.update_elapsed() / 60) > 10:
+                    if streamers[index].stream.update_elapsed() > 600:
                         # Why this user It's currently online but the last updated was more than 10minutes ago?
                         # Please perform a manually update and check if the user it's online
                         self.check_streamer_online(streamers[index])
@@ -280,9 +280,7 @@ class Twitch(object):
                         items = sorted(
                             items,
                             key=lambda x: x["points"],
-                            reverse=(
-                                True if prior == Priority.POINTS_DESCEDING else False
-                            ),
+                            reverse=prior == Priority.POINTS_DESCEDING,
                         )
                         streamers_watching += [item["index"] for item in items][:2]
 
@@ -455,48 +453,47 @@ class Twitch(object):
                         "event": Events.BET_FILTERS,
                     },
                 )
-            else:
-                if decision["amount"] >= 10:
-                    logger.info(
-                        f"Place {_millify(decision['amount'])} channel points on: {event.bet.get_outcome(selector_index)}",
-                        extra={
-                            "emoji": ":four_leaf_clover:",
-                            "event": Events.BET_GENERAL,
-                        },
-                    )
+            elif decision["amount"] >= 10:
+                logger.info(
+                    f"Place {_millify(decision['amount'])} channel points on: {event.bet.get_outcome(selector_index)}",
+                    extra={
+                        "emoji": ":four_leaf_clover:",
+                        "event": Events.BET_GENERAL,
+                    },
+                )
 
-                    json_data = copy.deepcopy(GQLOperations.MakePrediction)
-                    json_data["variables"] = {
-                        "input": {
-                            "eventID": event.event_id,
-                            "outcomeID": decision["id"],
-                            "points": decision["amount"],
-                            "transactionID": token_hex(16),
-                        }
+                json_data = copy.deepcopy(GQLOperations.MakePrediction)
+                json_data["variables"] = {
+                    "input": {
+                        "eventID": event.event_id,
+                        "outcomeID": decision["id"],
+                        "points": decision["amount"],
+                        "transactionID": token_hex(16),
                     }
-                    response = self.post_gql_request(json_data)
-                    if (
-                        "data" in response
-                        and "makePrediction" in response["data"]
-                        and "error" in response["data"]["makePrediction"]
-                        and response["data"]["makePrediction"]["error"] is not None
-                    ):
-                        error_code = response["data"]["makePrediction"]["error"]["code"]
-                        logger.error(
-                            f"Failed to place bet, error: {error_code}",
-                            extra={
-                                "emoji": ":four_leaf_clover:",
-                                "event": Events.BET_FAILED,
-                            },
-                        )
-                else:
-                    logger.info(
-                        f"Bet won't be placed as the amount {_millify(decision['amount'])} is less than the minimum required 10",
+                }
+                response = self.post_gql_request(json_data)
+                if (
+                    "data" in response
+                    and "makePrediction" in response["data"]
+                    and "error" in response["data"]["makePrediction"]
+                    and response["data"]["makePrediction"]["error"] is not None
+                ):
+                    error_code = response["data"]["makePrediction"]["error"]["code"]
+                    logger.error(
+                        f"Failed to place bet, error: {error_code}",
                         extra={
                             "emoji": ":four_leaf_clover:",
-                            "event": Events.BET_GENERAL,
+                            "event": Events.BET_FAILED,
                         },
                     )
+            else:
+                logger.info(
+                    f"Bet won't be placed as the amount {_millify(decision['amount'])} is less than the minimum required 10",
+                    extra={
+                        "emoji": ":four_leaf_clover:",
+                        "event": Events.BET_GENERAL,
+                    },
+                )
         else:
             logger.info(
                 f"Oh no! The event is not active anymore! Current status: {event.status}",
@@ -565,9 +562,11 @@ class Twitch(object):
                 }
 
             response = self.post_gql_request(json_data)
-            for r in response:
-                if r["data"]["user"] is not None:
-                    result.append(r["data"]["user"]["dropCampaign"])
+            result.extend(
+                r["data"]["user"]["dropCampaign"]
+                for r in response
+                if r["data"]["user"] is not None
+            )
         return result
 
     def __sync_campaigns(self, campaigns):
@@ -637,10 +636,7 @@ class Twitch(object):
         while self.running:
             try:
                 # Get update from dashboard each 60minutes
-                if (
-                    campaigns_update == 0
-                    or ((time.time() - campaigns_update) / 60) > 60
-                ):
+                if campaigns_update == 0 or time.time() - campaigns_update > 3600:
                     campaigns_update = time.time()
                     # Get full details from current ACTIVE campaigns
                     # Use dashboard so we can explore new drops not currently active in our Inventory

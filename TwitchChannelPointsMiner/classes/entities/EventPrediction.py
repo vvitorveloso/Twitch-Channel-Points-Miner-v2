@@ -65,13 +65,12 @@ class EventPrediction(object):
     def parse_result(self, result) -> dict:
         result_type = result["type"]
 
-        points = {}
-        points["placed"] = self.bet.decision["amount"]
-        points["won"] = (
-            result["points_won"]
+        points = {
+            "placed": self.bet.decision["amount"],
+            "won": result["points_won"]
             if result["points_won"] or result_type == "REFUND"
-            else 0
-        )
+            else 0,
+        }
         points["gained"] = (
             points["won"] - points["placed"] if result_type != "REFUND" else 0
         )

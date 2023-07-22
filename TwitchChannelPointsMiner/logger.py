@@ -135,21 +135,21 @@ class GlobalFormatter(logging.Formatter):
         return super().format(record)
 
     def telegram(self, record):
-        skip_telegram = False if hasattr(record, "skip_telegram") is False else True
+        skip_telegram = hasattr(record, "skip_telegram") is not False
 
         if (
             self.settings.telegram is not None
-            and skip_telegram is False
+            and not skip_telegram
             and self.settings.telegram.chat_id != 123456789
         ):
             self.settings.telegram.send(record.msg, record.event)
 
     def discord(self, record):
-        skip_discord = False if hasattr(record, "skip_discord") is False else True
+        skip_discord = hasattr(record, "skip_discord") is not False
 
         if (
             self.settings.discord is not None
-            and skip_discord is False
+            and not skip_discord
             and self.settings.discord.webhook_api
             != "https://discord.com/api/webhooks/0123456789/0a1B2c3D4e5F6g7H8i9J"
         ):

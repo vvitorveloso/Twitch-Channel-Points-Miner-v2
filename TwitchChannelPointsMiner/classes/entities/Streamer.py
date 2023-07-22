@@ -266,8 +266,7 @@ class Streamer(object):
                     self.__join_chat()
                 elif self.settings.chat == ChatPresence.OFFLINE:
                     self.leave_chat()
-            else:
-                if self.settings.chat == ChatPresence.ONLINE:
-                    self.leave_chat()
-                elif self.settings.chat == ChatPresence.OFFLINE:
-                    self.__join_chat()
+            elif self.settings.chat == ChatPresence.ONLINE:
+                self.leave_chat()
+            elif self.settings.chat == ChatPresence.OFFLINE:
+                self.__join_chat()

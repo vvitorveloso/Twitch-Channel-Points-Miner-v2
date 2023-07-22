@@ -34,8 +34,7 @@ def aggregate(df, freq="30Min"):
     oe = df_other_events.groupby([pd.Grouper(freq=freq, key="datetime"), "z"]).max()
     oe = oe.reset_index()
 
-    result = pd.concat([be, oe])
-    return result
+    return pd.concat([be, oe])
 
 
 def filter_datas(start_date, end_date, datas):
@@ -110,9 +109,7 @@ def read_json(streamer, return_response=True):
 
 def get_challenge_points(streamer):
     datas = read_json(streamer, return_response=False)
-    if datas != {}:
-        return datas["series"][-1]["y"]
-    return 0
+    return datas["series"][-1]["y"] if datas != {} else 0
 
 
 def json_all():

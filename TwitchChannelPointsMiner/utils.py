@@ -42,7 +42,7 @@ def server_time(message_data):
 # https://en.wikipedia.org/wiki/Cryptographic_nonce
 def create_nonce(length=30) -> str:
     nonce = ""
-    for i in range(length):
+    for _ in range(length):
         char_index = randrange(0, 10 + 26 + 26)
         if char_index < 10:
             char = chr(ord("0") + char_index)
@@ -105,17 +105,14 @@ def remove_emoji(string: str) -> str:
 
 
 def at_least_one_value_in_settings_is(items, attr, value=True):
-    for item in items:
-        if getattr(item.settings, attr) == value:
-            return True
-    return False
+    return any(getattr(item.settings, attr) == value for item in items)
 
 
 def copy_values_if_none(settings, defaults):
     values = list(
         filter(
             lambda x: x.startswith("__") is False
-            and callable(getattr(settings, x)) is False,
+            and not callable(getattr(settings, x)),
             dir(settings),
         )
     )

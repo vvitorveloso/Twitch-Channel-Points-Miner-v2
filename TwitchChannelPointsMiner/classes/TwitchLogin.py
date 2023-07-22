@@ -60,7 +60,7 @@ class TwitchLogin(object):
 
         use_backup_flow = False
 
-        for attempt in range(0, 25):
+        for _ in range(0, 25):
             password = (
                 getpass.getpass(f"Enter Twitch password for {self.username}: ")
                 if self.password in [None, ""]
@@ -189,8 +189,10 @@ class TwitchLogin(object):
             cookies_dict["persistent"] = self.user_id
 
         self.cookies = []
-        for cookie_name, value in cookies_dict.items():
-            self.cookies.append({"name": cookie_name, "value": value})
+        self.cookies.extend(
+            {"name": cookie_name, "value": value}
+            for cookie_name, value in cookies_dict.items()
+        )
         pickle.dump(self.cookies, open(cookies_file, "wb"))
 
     def get_cookie_value(self, key):

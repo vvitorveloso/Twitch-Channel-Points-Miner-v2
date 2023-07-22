@@ -23,7 +23,7 @@ class ChatPresence(Enum):
 class ClientIRC(SingleServerIRCBot):
     def __init__(self, username, token, channel):
         self.token = token
-        self.channel = "#" + channel
+        self.channel = f"#{channel}"
         self.__active = False
 
         super(ClientIRC, self).__init__(
